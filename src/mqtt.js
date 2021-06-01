@@ -2,6 +2,7 @@ const mqtt = require("mqtt");
 const axios = require("axios");
 
 let client;
+const CONTEXT_BROKER_URL = process.env.CONTEXT_BROKER_URL;
 
 class MQTT {
   static connect(mqttBrokerUrl) {
@@ -37,12 +38,13 @@ class MQTT {
 }
 
 async function connectCB() {
-  console.log("mqtt: connected");
-  topicsArr = ["up/provision/+", "up/telemetry/+"];
+  console.log("mqtt connected");
+  topicsArr = ["up/test/+", "up/provision/+", "up/telemetry/+"];
   MQTT.subscribe(topicsArr);
 }
 
 function messageCB(topic, msgBuff) {
+  console.log("mqtt message on topic", topic);
   // message is a buffer, so convert it to string
   const msgStr = msgBuff.toString();
 
@@ -51,69 +53,52 @@ function messageCB(topic, msgBuff) {
   const type = topic.slice(firstSlash + 1, secondSlash);
   const apikey = topic.slice(secondSlash + 1);
 
-  try {
-    const msgObj = JSON.parse(msgStr);
-    if (type === "telemetry") return handleTelemetry(apikey, msgObj);
-    if (type === "provision") return handleProvision(apikey, msgObj);
-    if (type === "test") return handleTest(apikey, msgObj);
-    console("message not recognized");
-  } catch (error) {
-    console.log(error);
-  }
+  if (type === "telemetry") return handleTelemetry(apikey, msgStr);
+  if (type === "provision") return handleProvision(apikey, msgStr);
+  if (type === "test") return handleTest(apikey, msgStr);
+  console("request not recognized");
 }
 
 module.exports = MQTT;
 
 function handleTest(apikey, message) {
-  console.log("handle test", apikey);
-
+  console.log("test request from", apikey);
   const topic = `down/test/${apikey}`;
-  MQTT.publish(topic, "ok");
+  MQTT.publish(topic, message);
 }
 
-function handleTelemetry(apikey, message) {
-  console.log("handle telemetry", message);
+function handleTelemetry(apikey, msgStr) {
+  console.log("telemetry request from", apikey);
 
-  let data = Object.entries(message).map(([key, value]) => {
-    return {
-      name: key,
-      records: value,
-    };
-  });
+  try {
+    const telemetryObj = JSON.parse(msgStr);
+    const teleObj = { entity: apikey, ...telemetryObj };
+    const telemetryUrl = CONTEXT_BROKER_URL + "/telemetry";
 
-  const telemetryObj = { data };
-
-  const telemetryUrl = `${process.env.CONTEXT_BROKER_URL}/entities/${apikey}/telemetry`;
-
-  axios
-    .post(telemetryUrl, telemetryObj)
-    .then((response) => console.log(response.data))
-    .catch((error) => console.log(error.response.data));
+    axios
+      .post(telemetryUrl, teleObj)
+      .then((response) => console.log(response.data))
+      .catch((error) => console.log(error.message));
+  } catch (error) {
+    console.log(error);
+  }
 }
 
-function handleProvision(apikey, message) {
-  console.log("handle provision", message);
+async function handleProvision(apikey, msgStr) {
+  console.log("provision request from", apikey);
 
-  const resMsg = {
-    ok: 1,
-    data: {
-      "01": {
-        "01": 1,
-        "02": 1,
-      },
-      "02": {
-        "01": 1,
-        "02": 1,
-      },
-    },
-  };
   const topic = `down/provision/${apikey}`;
-  MQTT.publish(topic, resMsg);
+  try {
+    const provisionObj = JSON.parse(msgStr);
+    const provObj = { entity: apikey, ...provisionObj };
+    const provisionUrl = CONTEXT_BROKER_URL + "/provision";
 
-  // const provisionObj = { data };
-  // const provisionUrl = `${process.env.CONTEXT_BROKER_URL}/entities/${apikey}/provision`;
-  // axios
-  //   .post(provisionUrl, provisionObj)
-  //   .then((response) => console.log(response.data))
-  //   .catch((error) => console.log(error.response.data));
+    axios
+      .post(provisionUrl, provObj)
+      .then((res) => MQTT.publish(topic, res.data))
+      .catch((err) => console.log(err.response));
+  } catch (error) {
+    console.log(error);
+    MQTT.publish(topic, { ok: 0 });
+  }
 }
