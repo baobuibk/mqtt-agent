@@ -39,7 +39,7 @@ class MQTT {
 
 async function connectCB() {
   console.log("mqtt connected");
-  topicsArr = ["up/test/+", "up/provision/+", "up/telemetry/+"];
+  topicsArr = ["up/test/+", "up/provision/+", "up/telemetry/+", "up/command/+"];
   MQTT.subscribe(topicsArr);
 }
 
@@ -53,9 +53,10 @@ function messageCB(topic, msgBuff) {
   const type = topic.slice(firstSlash + 1, secondSlash);
   const apikey = topic.slice(secondSlash + 1);
 
+  if (type === "test") return handleTest(apikey, msgStr);
   if (type === "telemetry") return handleTelemetry(apikey, msgStr);
   if (type === "provision") return handleProvision(apikey, msgStr);
-  if (type === "test") return handleTest(apikey, msgStr);
+  if (type === "command") return handleCommand(apikey, msgStr);
   console("request not recognized");
 }
 
@@ -101,4 +102,9 @@ async function handleProvision(apikey, msgStr) {
     console.log(error);
     MQTT.publish(topic, { ok: 0 });
   }
+}
+
+async function handleCommand(apikey, msgStr) {
+  console.log("command response from", apikey);
+  console.log("message is:", msgStr);
 }
