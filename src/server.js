@@ -12,7 +12,7 @@ const MQTT = require("./mqtt");
 function handleCommand(req, res) {
   const { data, entity: id } = req.body;
 
-  console.log("data", data);
+  console.log("command for", id);
 
   MQTT.publish(`down/command/${id}`, data);
 

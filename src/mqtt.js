@@ -44,7 +44,6 @@ async function connectCB() {
 }
 
 function messageCB(topic, msgBuff) {
-  console.log("mqtt message on topic", topic);
   // message is a buffer, so convert it to string
   const msgStr = msgBuff.toString();
 
@@ -69,7 +68,7 @@ function handleTest(apikey, message) {
 }
 
 function handleTelemetry(apikey, msgStr) {
-  console.log("telemetry request from", apikey);
+  console.log("telemetry from", apikey);
 
   try {
     const telemetryObj = JSON.parse(msgStr);
@@ -78,7 +77,7 @@ function handleTelemetry(apikey, msgStr) {
 
     axios
       .post(telemetryUrl, teleObj)
-      .then((response) => console.log(response.data))
+      .then((response) => console.log("telemetry ok"))
       .catch((error) => console.log(error.message));
   } catch (error) {
     console.log(error);
