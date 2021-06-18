@@ -1,22 +1,16 @@
 const express = require("express");
-
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.post("/down/command", handleCommand);
+const morganLogger = require("morgan");
+app.use(morganLogger("dev"));
 
-const MQTT = require("./mqtt");
+app.use("/command", require("./api/command.route"));
 
-function handleCommand(req, res) {
-  const { data, entity: id } = req.body;
-
-  console.log("command for", id);
-
-  MQTT.publish(`down/command/${id}`, data);
-
+app.get("/check", async (req, res) => {
   res.send("ok");
-}
+});
 
 module.exports = app;
