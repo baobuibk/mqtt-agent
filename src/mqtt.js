@@ -39,6 +39,11 @@ class MQTT {
 
 async function onConnectCallback() {
   console.log("connected to mqtt-broker");
+
+  console.log("check context-broker status...");
+  const { data } = await axios.get(CONTEXT_BROKER_URL + "/check");
+  if (data === "ok") console.log("context-broker is running");
+
   topicsArr = [
     "up/check/+",
     "up/provision/+",
@@ -94,18 +99,25 @@ async function handleTelemetry(apikey, message) {
 async function handleProvision(apikey, message) {
   console.log("provision from", apikey);
 
-  const topic = `down/provision/${apikey}`;
+  const downTopic = `down/provision/${apikey}`;
   try {
     const provisionObj = JSON.parse(message);
     provisionObj.entity = apikey;
-    const result = await axios.post(
-      CONTEXT_BROKER_URL + "/provision",
-      provisionObj
-    );
-    MQTT.publish(topic, result.data);
+    axios
+      .post(CONTEXT_BROKER_URL + "/provision", provisionObj)
+      .then(({ data }) => MQTT.publish(downTopic, data))
+      .catch((error) => {
+        if (error.response) {
+          console.log(
+            "provision request to context-broker failed:",
+            error.response.data
+          );
+          MQTT.publish(downTopic, error.response.data);
+        } else console.log(error.message);
+      });
   } catch (error) {
     console.log(error.message);
-    MQTT.publish(topic, { ok: 0 });
+    MQTT.publish(downTopic, "mqtt-agent error");
   }
 }
 
