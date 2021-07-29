@@ -71,6 +71,8 @@ function onMessageCallback(topic, message) {
       return handleTelemetry(apikey, messageString);
     case "command":
       return handleCommand(apikey, messageString);
+    case "time":
+      return handleTime(apikey, messageString);
     default:
       console.log("request not recognized");
       break;
@@ -124,6 +126,21 @@ async function handleProvision(apikey, message) {
 async function handleCommand(apikey, message) {
   console.log("command response from", apikey);
   console.log(message);
+}
+
+async function handleTime(apikey, message) {
+  console.log("time from", apikey);
+  const now = new Date();
+  const response = {
+    year: now.getUTCFullYear(),
+    month: now.getUTCMonth() + 1,
+    day: now.getUTCDate(),
+    hour: now.getUTCHours(),
+    minute: now.getUTCMinutes(),
+    second: now.getUTCSeconds(),
+  };
+  const downTopic = "down/time/" + apikey;
+  MQTT.publish(downTopic, response);
 }
 
 module.exports = MQTT;
