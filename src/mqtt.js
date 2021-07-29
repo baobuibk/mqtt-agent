@@ -45,6 +45,7 @@ async function onConnectCallback() {
   if (data === "ok") console.log("context-broker is running");
 
   topicsArr = [
+    "up/time/+",
     "up/check/+",
     "up/provision/+",
     "up/telemetry/+",
