@@ -1,9 +1,18 @@
-const app = require("./server");
-const PORT = process.env.PORT || 3003;
-app.listen(PORT, () => {
-  console.log(`server is listening on port ${PORT}`);
-});
+const http = require("http");
 
-const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://localhost";
-const MQTT = require("./mqtt");
-MQTT.connect(MQTT_BROKER_URL);
+require("./mqtt");
+const expressApp = require("./express");
+
+async function main() {
+  const httpServer = http.createServer(expressApp);
+  const PORT = process.env.PORT || 8003;
+
+  httpServer.listen(PORT, () => {
+    console.log("http server is listening on port", PORT);
+  });
+}
+
+main().catch((error) => {
+  console.log(error);
+  process.exit(1);
+});
