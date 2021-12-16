@@ -1,7 +1,10 @@
 const mqtt = require("mqtt");
 const axios = require("axios");
+const debug = require("debug")("mqttagent");
 
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
+const CONTEXT_BROKER_URL = process.env.CONTEXT_BROKER_URL;
+
 let client = mqtt.connect(MQTT_BROKER_URL, {
   reconnectPeriod: 0,
 });
@@ -13,12 +16,7 @@ client.on("error", (error) => {
 client.on("connect", () => {
   console.log("connected to mqtt broker");
 
-  topicsArr = [
-    "up/status/+",
-    "up/provision/+",
-    "up/telemetry/+",
-    "up/command/+",
-  ];
+  topicsArr = ["up/status/+", "up/provision/+", "up/telemetry/+"];
   client.subscribe(topicsArr, (error) => {
     if (error) return console.log("mqtt error subscribe to topics");
 
@@ -26,10 +24,9 @@ client.on("connect", () => {
   });
 });
 
-client.on("message", (topic, message) => {
-  // message is a buffer, so convert it to string
-  const messageString = message.toString();
-  const messageObject = JSON.parse(message);
+client.on("message", (topic, msgBuff) => {
+  // msgBuff is a buffer, so convert it to string
+  const msgStr = msgBuff.toString();
 
   const firstSlash = topic.indexOf("/");
   const secondSlash = topic.indexOf("/", firstSlash + 1);
@@ -39,67 +36,56 @@ client.on("message", (topic, message) => {
 
   switch (type) {
     case "provision":
-      return handleProvision(apikey, messageObject);
+      return handleProvision(apikey, msgStr);
     case "telemetry":
-      return handleTelemetry(apikey, messageObject);
-    case "command":
-      return handleCommand(apikey, messageObject);
+      return handleTelemetry(apikey, msgStr);
+
     case "status":
-      return handleCheckStatus(apikey, messageObject);
+      return handleCheckStatus(apikey, msgStr);
     default:
       console.log("mqtt topic not recognized");
       break;
   }
 });
 
-async function handleProvision(apikey, message) {
+async function handleProvision(apikey, msgStr) {
   console.log("provision from", apikey);
-
   const downTopic = `down/provision/${apikey}`;
-  try {
-    const provisionObj = JSON.parse(message);
-    provisionObj.entity = apikey;
 
-    axios
-      .post(CONTEXT_BROKER_URL + "/provision", provisionObj)
-      .then(({ data }) => MQTT.publish(downTopic, data))
-      .catch((error) => {
-        if (error.response) {
-          console.log(
-            "provision request to context-broker failed:",
-            error.response.data
-          );
-          MQTT.publish(downTopic, error.response.data);
-        } else console.log(error.message);
-      });
+  try {
+    const msgObj = JSON.parse(msgStr);
+    let result = await axios
+      .post(CONTEXT_BROKER_URL + "/api/provision/request", msgObj)
+      .then((res) => res.data);
+    debug(result);
+    client.publish(downTopic, JSON.stringify({ ok: 1, result }));
   } catch (error) {
-    console.log(error.message);
-    MQTT.publish(downTopic, "mqtt-agent error");
+    debug(error.message);
+    client.publish(downTopic, JSON.stringify({ ok: 0 }));
   }
 }
 
-async function handleTelemetry(apikey, message) {
-  console.log("telemetry from", apikey);
+async function handleTelemetry(apikey, msgStr) {
+  debug("telemetry from", apikey);
+  const downTopic = `down/telemetry/${apikey}`;
 
   try {
-    const telemetryObj = JSON.parse(message);
-    telemetryObj.entity = apikey;
-    await axios.post(CONTEXT_BROKER_URL + "/telemetry", telemetryObj);
-    console.log("telemetry ok");
+    const msgObj = JSON.parse(msgStr);
+    let result = await axios
+      .post(CONTEXT_BROKER_URL + "/api/entity/telemetry/gateway", msgObj)
+      .then((res) => res.data);
+    debug(result);
+    client.publish(downTopic, JSON.stringify({ ok: 1, result }));
   } catch (error) {
-    console.log(error.message);
+    debug(error.message);
+    client.publish(downTopic, JSON.stringify({ ok: 0 }));
   }
-}
-
-async function handleCommand(apikey, message) {
-  console.log("command response from", apikey);
-  console.log(message);
 }
 
 function handleCheckStatus(apikey, message) {
   console.log("check status from", apikey);
-  const topic = `down/status/${apikey}`;
-  MQTT.publish(topic, message);
+  const downTopic = `down/status/${apikey}`;
+  MQTT.publish(downTopic, message);
 }
 
 module.exports = client;
