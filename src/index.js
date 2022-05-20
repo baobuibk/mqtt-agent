@@ -1,18 +1,17 @@
-const http = require("http");
+require("dotenv").config();
+
+const httpServer = require("http").createServer(require("./app"));
+const PORT = process.env.PORT || 8003;
 
 require("./mqtt");
-const expressApp = require("./express");
 
 async function main() {
-  const httpServer = http.createServer(expressApp);
-  const PORT = process.env.PORT || 8003;
-
-  httpServer.listen(PORT, () => {
-    console.log("http server is listening on port", PORT);
-  });
+  httpServer.listen(PORT, () =>
+    console.log("server is listening on port", PORT)
+  );
 }
 
 main().catch((error) => {
-  console.log(error);
+  console.log(error.message);
   process.exit(1);
 });

@@ -1,26 +1,22 @@
 const mqtt = require("mqtt");
 const axios = require("axios");
-const debug = require("debug")("mqttagent");
+const debug = require("debug")("mqtt.js");
 
-const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
-const CONTEXT_BROKER_URL = process.env.CONTEXT_BROKER_URL;
+const ProCon = require("./controllers/provision.controller");
+const TeCon = require("./controllers/telemetry.controller");
 
-let client = mqtt.connect(MQTT_BROKER_URL, {
+let client = mqtt.connect(process.env.MQTT_BROKER_URL || "mqtt://localhost", {
   reconnectPeriod: 0,
 });
 
-client.on("error", (error) => {
-  console.log("mqtt client error:", error.message);
-});
+client.on("error", (error) => debug("error", error.message));
 
 client.on("connect", () => {
-  console.log("connected to mqtt broker");
+  debug("connect");
 
   topicsArr = ["up/status/+", "up/provision/+", "up/telemetry/+"];
   client.subscribe(topicsArr, (error) => {
-    if (error) return console.log("mqtt error subscribe to topics");
-
-    console.log("mqtt subscribed to topics");
+    if (error) return debug("error", error.message);
   });
 });
 
@@ -28,64 +24,56 @@ client.on("message", (topic, msgBuff) => {
   // msgBuff is a buffer, so convert it to string
   const msgStr = msgBuff.toString();
 
-  const firstSlash = topic.indexOf("/");
-  const secondSlash = topic.indexOf("/", firstSlash + 1);
+  const topicParts = topic.split("/");
 
-  const type = topic.slice(firstSlash + 1, secondSlash);
-  const apikey = topic.slice(secondSlash + 1);
+  const type = topicParts[1];
+  const gatewayId = topicParts[2];
 
   switch (type) {
     case "provision":
-      return handleProvision(apikey, msgStr);
+      return handleProvision(gatewayId, msgStr);
     case "telemetry":
-      return handleTelemetry(apikey, msgStr);
-
+      return handleTelemetry(gatewayId, msgStr);
     case "status":
-      return handleCheckStatus(apikey, msgStr);
+      return handleStatus(gatewayId, msgStr);
     default:
-      console.log("mqtt topic not recognized");
+      debug("Unrecognized topic:", topic);
       break;
   }
 });
 
-async function handleProvision(apikey, msgStr) {
-  console.log("provision from", apikey);
-  const downTopic = `down/provision/${apikey}`;
+async function handleProvision(gatewayId, msgStr) {
+  debug("provision");
+  const downTopic = `down/provision/${gatewayId}`;
 
   try {
     const msgObj = JSON.parse(msgStr);
-    let result = await axios
-      .post(CONTEXT_BROKER_URL + "/api/provision/request", msgObj)
-      .then((res) => res.data);
+    const result = await ProCon.request(gatewayId, msgObj);
     debug(result);
-    client.publish(downTopic, JSON.stringify({ ok: 1, result }));
+    client.publish(downTopic, JSON.stringify(result));
   } catch (error) {
     debug(error.message);
-    client.publish(downTopic, JSON.stringify({ ok: 0 }));
   }
 }
 
-async function handleTelemetry(apikey, msgStr) {
-  debug("telemetry from", apikey);
-  const downTopic = `down/telemetry/${apikey}`;
+async function handleTelemetry(gatewayId, msgStr) {
+  debug("telemetry");
+  const downTopic = `down/telemetry/${gatewayId}`;
 
   try {
     const msgObj = JSON.parse(msgStr);
-    let result = await axios
-      .post(CONTEXT_BROKER_URL + "/api/entity/telemetry/gateway", msgObj)
-      .then((res) => res.data);
+    const result = await TeCon.request(gatewayId, msgObj);
     debug(result);
-    client.publish(downTopic, JSON.stringify({ ok: 1, result }));
+    client.publish(downTopic, JSON.stringify(result));
   } catch (error) {
     debug(error.message);
-    client.publish(downTopic, JSON.stringify({ ok: 0 }));
   }
 }
 
-function handleCheckStatus(apikey, message) {
-  console.log("check status from", apikey);
-  const downTopic = `down/status/${apikey}`;
-  MQTT.publish(downTopic, message);
+function handleStatus(gatewayId, message) {
+  debug("check status from", gatewayId);
+  const downTopic = `down/status/${gatewayId}`;
+  client.publish(downTopic, message);
 }
 
 module.exports = client;
