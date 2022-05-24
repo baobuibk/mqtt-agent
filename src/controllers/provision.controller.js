@@ -36,7 +36,7 @@ class ProvisionController {
       JSON.stringify({ value: true, timestamp: new Date() })
     );
 
-    return result;
+    return result.map((entity) => entity._id);
   }
 }
 
