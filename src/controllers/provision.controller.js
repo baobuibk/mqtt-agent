@@ -1,13 +1,17 @@
 const axios = require("axios");
 const cbUrl = process.env.CONTEXT_BROKER_URL || "http://localhost:8000";
-const debug = require("debug")("provision.controller");
+// const debug = require("debug")("provision.controller");
+
+const ContextPublisher = require("../ContextPublisher");
+const conPub = new ContextPublisher();
 
 class ProvisionController {
-  static request(gatewayId, data) {
-    return Promise.all(
+  static async request(gatewayId, data) {
+    const result = await Promise.all(
       data.map(async (device) => {
         let entity = {
           ...device,
+          type: { type: "string", value: "Device" },
           refGateway: { type: "string", value: gatewayId },
         };
 
@@ -26,6 +30,13 @@ class ProvisionController {
         );
       })
     );
+
+    conPub.publish(
+      `provision.${gatewayId}`,
+      JSON.stringify({ value: true, timestamp: new Date() })
+    );
+
+    return result;
   }
 }
 
