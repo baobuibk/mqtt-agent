@@ -36,7 +36,16 @@ class ProvisionController {
       JSON.stringify({ value: true, timestamp: new Date() })
     );
 
-    return result.map((entity) => entity._id);
+    console.log(result);
+
+    return result.map((entity) => {
+      console.log(entity);
+      return {
+        deviceId: entity._id,
+        deviceName: entity.deviceName?.value || null,
+      };
+    });
+    // return result;
   }
 }
 
