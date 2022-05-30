@@ -7,12 +7,20 @@ const conPub = new ContextPublisher();
 
 class ProvisionController {
   static async request(gatewayId, data) {
+    const foundGateway = await axios
+      .get(`${cbUrl}/entity/${gatewayId}`, {
+        params: { fields: "refSite" },
+      })
+      .then((res) => res.data);
+    if (!foundGateway) return data.map(() => null);
+
     const result = await Promise.all(
       data.map(async (device) => {
         let entity = {
           ...device,
           type: { type: "string", value: "Device" },
           refGateway: { type: "string", value: gatewayId },
+          refSite: { type: "string", value: foundGateway.refSite?.value || "" },
         };
 
         let query = {};
@@ -36,10 +44,7 @@ class ProvisionController {
       JSON.stringify({ value: true, timestamp: new Date() })
     );
 
-    console.log(result);
-
     return result.map((entity) => {
-      console.log(entity);
       return {
         deviceId: entity._id,
         deviceName: entity.deviceName?.value || null,
