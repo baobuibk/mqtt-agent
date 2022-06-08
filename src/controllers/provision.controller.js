@@ -48,6 +48,7 @@ class ProvisionController {
       return {
         deviceId: entity._id,
         deviceName: entity.deviceName?.value || null,
+        name: entity.name?.value || null,
       };
     });
     // return result;
