@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const httpServer = require("http").createServer(require("./app"));
 const PORT = process.env.PORT || 8003;
 
