@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const debug = require("debug")("provision.route");
+// const debug = require("debug")("provision.route");
+const debug = console.log
 
 const ProCon = require("../controllers/provision.controller");
 

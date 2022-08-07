@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const debug = require("debug")("telemetry.route");
+// const debug = require("debug")("telemetry.route");
+const debug = console.log;
 
 const TeCon = require("../controllers/telemetry.controller");
 

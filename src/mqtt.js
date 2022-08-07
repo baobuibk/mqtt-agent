@@ -1,13 +1,12 @@
 const mqtt = require("mqtt");
 const axios = require("axios");
-const debug = require("debug")("mqtt.js");
+// const debug = require("debug")("mqtt.js");
+const debug = console.log;
 
 const ProCon = require("./controllers/provision.controller");
 const TeCon = require("./controllers/telemetry.controller");
 
-let client = mqtt.connect(process.env.MQTT_BROKER_URL || "mqtt://localhost", {
-  reconnectPeriod: 0,
-});
+let client = mqtt.connect(process.env.MQTT_BROKER_URL || "mqtt://localhost");
 
 client.on("error", (error) => debug("error", error.message));
 
