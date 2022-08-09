@@ -6,7 +6,7 @@ class ContextPublisher {
   client;
   constructor() {
     let client = createClient({
-      url: process.env.REDIS_URL || "redis://localhost:6380",
+      url: process.env.REDIS_URL || "redis://localhost:6379",
     });
     client.on("connect", () => debug("connect"));
     client.on("ready", () => debug("ready"));
