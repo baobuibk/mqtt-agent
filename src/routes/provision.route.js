@@ -1,11 +1,9 @@
 const express = require("express");
 const router = express.Router();
 // const debug = require("debug")("provision.route");
-const debug = console.log
+const debug = console.log;
 
 const ProCon = require("../controllers/provision.controller");
-
-const PROVISION_TIMEOUT = Number(process.env.PROVISION_TIMEOUT) || 120;
 
 router.post("/:gatewayId", async (req, res) => {
   const { gatewayId } = req.params;
@@ -20,7 +18,7 @@ router.post("/:gatewayId", async (req, res) => {
 
 router.get("/:gatewayId/begin", async (req, res) => {
   const { gatewayId } = req.params;
-  redisClient.set(`provision.${gatewayId}`, "any", "EX", PROVISION_TIMEOUT);
+  redisClient.set(`provision.${gatewayId}`, "any", "EX", 120);
 });
 
 router.get("/:gatewayId/end", async (req, res) => {

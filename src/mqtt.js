@@ -6,7 +6,8 @@ const debug = console.log;
 const ProCon = require("./controllers/provision.controller");
 const TeCon = require("./controllers/telemetry.controller");
 
-let client = mqtt.connect(process.env.MQTT_BROKER_URL || "mqtt://localhost");
+const MQTT_BROKER_HOST = process.env.MQTT_BROKER_HOST || "localhost";
+let client = mqtt.connect("mqtt://" + MQTT_BROKER_HOST);
 
 client.on("error", (error) => debug("error", error.message));
 

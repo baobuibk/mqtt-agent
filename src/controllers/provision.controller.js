@@ -1,9 +1,20 @@
 const axios = require("axios");
-const cbUrl = process.env.CONTEXT_BROKER_URL || "http://localhost:8000";
-// const debug = require("debug")("provision.controller");
+const CONTEXT_BROKER_HOST = process.env.CONTEXT_BROKER_HOST || "localhost";
+const CONTEXT_BROKER_PORT = process.env.CONTEXT_BROKER_PORT || 8000;
+const CONTEXT_BROKER_URL = process.env.CONTEXT_BROKER_URL;
+const cbUrl =
+  CONTEXT_BROKER_URL ||
+  "http://" + CONTEXT_BROKER_HOST + ":" + CONTEXT_BROKER_PORT;
 
-const ContextPublisher = require("../ContextPublisher");
-const conPub = new ContextPublisher();
+const REDIS_HOST = process.env.REDIS_HOST || "localhost";
+const redisUrl = "redis://" + REDIS_HOST + ":6379";
+const { createClient } = require("redis");
+const redisClient = createClient({ url: redisUrl });
+redisClient.on("connect", () => console.log("redis client connect"));
+redisClient.connect();
+
+const { IoTProducer } = require("node-iot-lib");
+const producer = new IoTProducer(redisClient);
 
 class ProvisionController {
   static async request(gatewayId, data) {
@@ -39,7 +50,7 @@ class ProvisionController {
       })
     );
 
-    conPub.publish(
+    producer.publish(
       `provision.${gatewayId}`,
       JSON.stringify({ value: true, timestamp: new Date() })
     );

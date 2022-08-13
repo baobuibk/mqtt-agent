@@ -1,5 +1,5 @@
 const httpServer = require("http").createServer(require("./app"));
-const PORT = process.env.PORT || 8003;
+const PORT = Number(process.env.MQTT_AGENT_PORT) || 8003;
 
 require("./mqtt");
 

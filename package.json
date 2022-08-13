@@ -2,14 +2,23 @@
   "name": "mqtt-agent",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baobuibk/mqtt-agent.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/baobuibk/mqtt-agent/issues"
+  },
+  "homepage": "https://github.com/baobuibk/mqtt-agent#readme",
   "dependencies": {
     "axios": "^0.27.2",
     "cors": "^2.8.5",
@@ -18,6 +27,10 @@
     "express": "^4.18.1",
     "morgan": "^1.10.0",
     "mqtt": "^4.3.7",
-    "redis": "^4.1.0"
+    "node-iot-lib": "^0.1.0",
+    "redis": "^4.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
   }
 }
